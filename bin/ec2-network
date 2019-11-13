@@ -1,0 +1,103 @@
+#!/usr/bin/env python
+
+"""ec2-network: Script to manage security groups and other network-related
+resources.
+
+Use the help ('-h') option to see options and an example call.
+"""
+
+__author__      = "Joel Dubowy"
+
+import asyncio
+import logging
+import sys
+
+try:
+    import afscripting
+
+    from aws.ec2.network import SecurityGroupManager
+    from aws.scripting import exit_with_msg, AwsScriptArgs
+
+except ImportError as e:
+    import os
+    if not os.path.exists('/.dockerenv'):
+        print("""Run in docker:
+
+            docker run --rm -ti -v $PWD/:/aws/ -v $HOME/.aws/:/root/.aws/ \\
+                aws {} -h
+        """.format(sys.argv[0]))
+        sys.exit(1)
+    else:
+        raise
+
+
+class NetworkManagementArgs(AwsScriptArgs):
+
+    REQUIRED_ARGS = [
+    ]
+
+    OPTIONAL_ARGS = [
+        {
+            'short': '-a',
+            'long': '--security-group-add-rule',
+            'help': ("Add security group rule;"
+                "format '<sg_identifier>,<in|out>,<protocol>,<port_range>,<instance_identifier>"
+                "e.g. 'playground-v3,in,tcp,8080:8082,web-3")
+        },
+        {
+            'short': '-r',
+            'long': '--security-group-remove-instance-from-rule',
+            'help': "Instance identifier (name or id)"
+        }
+    ]
+
+    EXAMPLE_STRING = """Example calls:
+     > {script} --log-level INFO -a playground-v3,in,tcp,8080:8082,web-3
+
+     > {script} --log-level INFO -a sg-007a2d71,out,tcp,22:22,i-abc123
+
+     > {script} --log-level INFO -r web-3
+    """.format(script=sys.argv[0])
+
+    def _check_args(self):
+        pass
+
+def parse_rule_args(rule_args_str):
+    parts = rule_args_str.split(',')
+    if len(parts) != 5:
+        exit_with_msg("Invalid rule args: {}".format(
+            args.security_group_add_rule))
+
+    try:
+        ports = [int(e) for e in parts[3].split(':')]
+    except ValueError as e:
+        exit_with_msg("Invalid port range: {}".format(parts[3]))
+    if len(ports) != 2:
+        exit_with_msg("Invalid port range: {}".format(parts[3]))
+
+    return parts[0], parts[1], parts[2], ports[0], ports[1], parts[4]
+
+async def main():
+    args = NetworkManagementArgs().args
+
+    try:
+        if args.security_group_add_rule:
+            sg_id, rule_type, *rule_args = parse_rule_args(
+                args.security_group_add_rule)
+            sgm = SecurityGroupManager(sg_id)
+            if rule_type == 'in':
+                await sgm.add_inbound_rule(*rule_args)
+            elif rule_type == 'out':
+                await sgm.add_outbound_rule(*rule_args)
+            else:
+                exit_with_msg("Invalid rule type: {}".format(rule_type))
+
+        if args.security_group_remove_instance_from_rule:
+            await SecurityGroupManager.remove_instance_from_rules(
+                args.security_group_remove_instance_from_rule)
+
+    except Exception as e:
+        exit_with_msg(e)
+
+if __name__ == "__main__":
+    asyncio.run(main())

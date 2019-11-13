@@ -1,0 +1,70 @@
+#!/usr/bin/env python
+
+"""ec2-shutdown: Script to shutdown ec2 instances
+
+Use the help ('-h') option to see options and an example call.
+"""
+
+__author__      = "Joel Dubowy"
+
+import asyncio
+import logging
+import sys
+
+try:
+    from aws.ec2.shutdown import Ec2Shutdown
+    from aws.scripting import exit_with_msg, AwsScriptArgs
+
+except ImportError as e:
+    import os
+    if not os.path.exists('/.dockerenv'):
+        print("""Run in docker:
+
+            docker run --rm -ti -v $PWD/:/aws/ -v $HOME/.aws/:/root/.aws/ \\
+                aws {} -h
+        """.format(sys.argv[0]))
+        sys.exit(1)
+    else:
+        raise
+
+
+class Ec2ShutdownArgs(AwsScriptArgs):
+
+    REQUIRED_ARGS = [
+        {
+            'short': '-i',
+            'long': '--instance-identifier',
+            'dest': 'instance_identifiers',
+            'help': "instance name or id; e.g. 'web-4', 'i-abc123', etc.",
+            'action': 'append',
+            'default': []
+        }
+    ]
+
+    OPTIONAL_ARGS = [
+        {
+            'long': '--terminate',
+            'help': "terminate after shutting down",
+            'action': "store_true"
+        }
+    ]
+
+    EXAMPLE_STRING = """Example calls:
+     > {script} --log-level INFO -i test-2 -i test-3
+    """.format(script=sys.argv[0])
+
+
+async def main():
+    args = Ec2ShutdownArgs().args
+
+    try:
+        shutdowner = Ec2Shutdown()
+        await shutdowner.shutdown(args.instance_identifiers,
+            terminate=args.terminate)
+
+    except Exception as e:
+        exit_with_msg(e)
+
+
+if __name__ == "__main__":
+    asyncio.run(main())

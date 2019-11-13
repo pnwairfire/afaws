@@ -1,0 +1,98 @@
+#!/usr/bin/env python
+
+"""ec2-initialize: Script to initialize ec2 instances
+
+Use the help ('-h') option to see options and an example call.
+"""
+
+__author__      = "Joel Dubowy"
+
+import asyncio
+import logging
+import sys
+
+try:
+    from aws.s3 import S3Downloader
+    from aws.scripting import exit_with_msg, AwsScriptArgs
+
+except ImportError as e:
+    print("""Run in docker:
+
+        docker run --rm -ti -v $PWD/:/aws/ -v $HOME/.aws/:/root/.aws/ \\
+            aws {} -h
+    """.format(sys.argv[0]))
+    sys.exit(1)
+
+
+class S3DownloadArgs(AwsScriptArgs):
+
+    REQUIRED_ARGS = [
+        {
+            'short': '-d',
+            'long': '--dest-dir',
+            'help': 'where to save downloaded objects'
+        },
+        {
+            'short': '-b',
+            'long': '--bucket-name',
+            'help': "bucket name"
+        }
+    ]
+    OPTIONAL_ARGS = [
+        {
+            'short': '-p',
+            'long': '--path',
+            'help': "key path (to download all objects within)"
+        },
+        {
+            'short': '-k',
+            'long': '--key',
+            'help': "single key to download"
+        },
+        {
+            'long': '--create-dest-dir',
+            'help': "create dest dir if it doesn't exist",
+            'action': "store_true"
+        },
+        {
+            'long': '--mirror-s3-path',
+            'help': "include s3 bucket name and path structure in lcoal path",
+            'action': "store_true"
+        }
+    ]
+
+
+    EXAMPLE_STRING = """You can call this script on a bucket or any key subpath
+
+    Example calls:
+     > {script} --log-level INFO -d ./tmp/ -b data-bucket -p /some/stuff/geojson/
+     > {script} --log-level INFO -d ./tmp/ -b data-bucket -p /some/stuff/
+     > {script} --log-level INFO -d ./tmp/ -b data-bucket -k /some/stuff/geojson/latest.geojson
+    """.format(script=sys.argv[0])
+
+    def _check_args(self):
+        if not self.args.path and not self.args.key:
+            exit_with_msg("Specify -p/--path or -k/--key")
+
+        if self.args.path and self.args.key:
+            exit_with_msg("Specify -p/--path or -k/--key, but not both")
+
+
+async def main():
+    args = S3DownloadArgs().args
+
+    try:
+        args_dict = args.__dict__
+        dest_dir = args_dict.pop('dest_dir')
+        bucket_name = args_dict.pop('bucket_name')
+        downloader = S3Downloader(dest_dir, bucket_name, **args_dict)
+        if args.path:
+            downloader.download_all(args.path)
+        else:
+            downloader.download_one(args.key)
+
+    except Exception as e:
+        exit_with_msg(e)
+
+if __name__ == "__main__":
+    asyncio.run(main())

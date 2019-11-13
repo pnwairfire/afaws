@@ -1,0 +1,4 @@
+.aws
+.private/
+__pycache__
+tmp/

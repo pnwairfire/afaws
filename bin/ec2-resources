@@ -1,0 +1,154 @@
+#!/usr/bin/env python
+
+"""ec2-resources: Script to query ec2 resources
+
+Use the help ('-h') option to see options and an example call.
+"""
+
+__author__      = "Joel Dubowy"
+
+import asyncio
+import logging
+import sys
+
+import tabulate
+
+try:
+    from aws.ec2 import resources
+    from aws.scripting import exit_with_msg, AwsScriptArgs
+
+except ImportError as e:
+    import os
+    if not os.path.exists('/.dockerenv'):
+        print("""Run in docker:
+
+            docker run --rm -ti -v $PWD/:/aws/ -v $HOME/.aws/:/root/.aws/ \\
+                aws {} -h
+        """.format(sys.argv[0]))
+        sys.exit(1)
+    else:
+        raise
+
+
+VALID_RESOURCES = [k for k in resources.__all__ if not k.endswith('Error')]
+
+
+class Ec2ResourceArgs(AwsScriptArgs):
+
+    REQUIRED_ARGS = [
+        {
+            'short': '-t',
+            'long': '--type',
+            'help':  ', '.join(VALID_RESOURCES)
+        }
+    ]
+
+    OPTIONAL_ARGS = [
+        {
+            'short': '-i',
+            'long': '--identifier',
+            'help': "name, name pattern (for instances only), or id; "
+                "e.g. 'test-1', 'test-*', 'i-abc123', etc.",
+            'dest': 'identifiers',
+            'action': 'append',
+            'default': []
+        }
+    ]
+
+    EXAMPLE_STRING = """Example calls:
+     > {script} --log-level INFO -t Instance -i test-1
+     > {script} --log-level INFO -t Instance -i test-*
+     > {script} --log-level INFO -t Instance -i test-* -i staging-*
+     > {script} --log-level INFO -t Instance -i i-abc123
+     > {script} --log-level INFO -t SecurityGroup -i bluesky-web
+     > {script} --log-level INFO -t SecurityGroup -i sg-fa77378b
+     > {script} --log-level INFO -t Image -i web-3-11-Nov-2018
+     > {script} --log-level INFO -t Image -i ami-abc123
+    """.format(script=sys.argv[0])
+
+    def _check_args(self):
+        if self.args.type not in VALID_RESOURCES:
+            exit_with_msg("Invalid type: {}".format(self.args.type))
+
+
+def get_name(obj):
+    return (obj.name or 'n/a')[:40]
+
+def get_state(obj):
+    if hasattr(obj,'state') and obj.state:
+        state = obj.state if hasattr(obj.state, 'lower') else obj.state['Name']
+        color = {
+            # instance states
+            'terminated':'\x1b[31m', # red
+            'stopped': '\x1b[33m', # yellow
+            'stopping': '\x1b[33m', # yellow
+            'shutting-down': '\x1b[33m', # yellow
+            'running': '\x1b[32m', # green
+            # images states
+            'available': '\x1b[32m' # green
+        }.get(state, '\x1b[0m') # default is normal color
+        return color + state +  '\x1b[0m'
+    return 'n/a'
+
+
+def get_row(obj):
+    row = [
+        obj.id,
+        get_name(obj),
+        get_state(obj)
+    ]
+    if obj.__class__.__name__ == 'ec2.Instance':
+        row.extend([
+            obj.instance_type,
+            obj.launch_time.strftime("%Y-%m-%d %H:%M:%S %Z"),
+            obj.classic_address.public_ip if obj.classic_address else '?'
+        ])
+    return row
+
+def get_headers(resource_klass):
+    headers = ["id", "name", "state"]
+    if resource_klass.__name__ == 'Instance':
+        headers.extend(['type', 'launch time', 'ip_address'])
+    return headers
+
+def output(resource_klass, objs):
+    print("") # print empty line
+    if objs:
+        rows = [get_row(obj) for obj in objs]
+        rows.sort(key=lambda e: e[1])
+        headers = get_headers(resource_klass)
+        print(tabulate.tabulate(rows, headers=headers))
+    else:
+        print("  (Resources not found)")
+    print("") # print empty line
+
+async def main():
+    args = Ec2ResourceArgs().args
+
+    try:
+        resource_klass = getattr(resources, args.type)
+
+        if args.identifiers:
+            objs = []
+            for i in args.identifiers:
+                _objs = []
+                if hasattr(resource_klass, 'find_all_by_name'):
+                    _objs = await resource_klass.find_all_by_name(i)
+                if not _objs:
+                    try:
+                        _objs = [await resource_klass(i)]
+                    except:
+                        pass
+                objs.extend(_objs)
+            # remove dupes
+            objs = {o.id: o for o in objs}.values()
+        else:
+            objs = await resource_klass.all()
+
+        output(resource_klass, objs)
+
+    except Exception as e:
+        exit_with_msg(e)
+
+if __name__ == "__main__":
+    asyncio.run(main())

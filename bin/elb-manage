@@ -1,0 +1,157 @@
+#!/usr/bin/env python
+
+"""elb-manage: Add/Remove instances to/from elb pool
+
+Use the help ('-h') option to see options and an example call.
+"""
+
+__author__      = "Joel Dubowy"
+
+import asyncio
+import copy
+import json
+import logging
+import sys
+
+try:
+    import tabulate
+
+    from aws.ec2.elb import ElbPool
+    from aws.scripting import exit_with_msg, AwsScriptArgs
+    from aws.ec2.resources import Instance
+
+except ImportError as e:
+    import os
+    if not os.path.exists('/.dockerenv'):
+        print("""Run in docker:
+
+            docker run --rm -ti -v $PWD/:/aws/ -v $HOME/.aws/:/root/.aws/ \\
+                aws {} -h
+        """.format(sys.argv[0]))
+        sys.exit(1)
+    else:
+        raise
+
+
+class ElbManageArgs(AwsScriptArgs):
+
+    REQUIRED_ARGS = [
+    ]
+    OPTIONAL_ARGS = [
+        {
+            'short': '-p',
+            'long': '--pool',
+            "help": 'Name of ELB pool'
+        },
+        {
+            'short': '-a',
+            'long': '--add-instance',
+            'dest': 'add_instance_identifiers',
+            'help': "Name or id of instance to add; e.g. 'web-4', 'i-abc123', etc.",
+            'action': 'append',
+            'default': []
+        },
+        {
+            'short': '-r',
+            'long': '--remove-instance',
+            'dest': 'remove_instance_identifiers',
+            'help': "Name or id of instance to remove; e.g. 'web-4', 'i-abc123', etc.",
+            'action': 'append',
+            'default': []
+        },
+        {
+            'short': '-l',
+            'long': '--list-instances',
+            'help': 'List instances in pool',
+            'action': 'store_true'
+        }
+    ]
+
+    EXAMPLE_STRING = """Example calls:
+     > {script} --log-level INFO -p test -l
+     > {script} --log-level INFO -p test -a test-2 -a test-3
+     > {script} --log-level INFO -p test -r test-4
+    """.format(script=sys.argv[0])
+
+    def _check_args(self):
+        if not self.args.pool and (self.args.add_instance_identifiers
+                or self.args.remove_instance_identifiers):
+            exit_with_msg("Specify pool name to add or remove instances")
+
+        # make sure add_instance_identifiers and remove_instance_identifiers
+        # don't intersect (this catches case where id of instance is in one set
+        # and name is in the other, but we'll never mix names and ids
+        add_and_remove_ids = set(self.args.add_instance_identifiers).intersection(
+            self.args.remove_instance_identifiers)
+        if add_and_remove_ids:
+            exit_with_msg("You can't both add and remove instance(s) {}".format(
+                ','.join(list(add_and_remove_ids))))
+
+
+def get_row(instance):
+    return [
+        instance['object'].name,
+        instance['object'].classic_address.public_ip,
+        instance['Target']['Id'],
+        instance['Target']['Port'],
+        instance['TargetHealth']['State']
+    ]
+
+HEADERS = ['name','ip','id', 'port', 'state']
+
+async def output(pools):
+    for pool in pools:
+        sys.stdout.write("-"*80 + "\n")
+        sys.stdout.write("Pool '{}' ({}) target groups and instances\n".format(
+            pool.name, pool.arn))
+
+        try:
+            for tg in pool.target_groups:
+                sys.stdout.write('{}\n'.format(tg['TargetGroupName']))
+                if not tg.get('instances'):
+                    sys.stdout.write('   (none)\n')
+                else:
+                    rows = [get_row(i) for i in tg['instances']]
+                    rows.sort(key=lambda e: e[0])
+                    print(tabulate.tabulate(rows, headers=HEADERS))
+
+
+        except:
+            for tg in pool.target_groups:
+                for i in tg.get('instances', []):
+                    i.pop('object', None)
+            sys.stdout.write(json.dumps(tg, indent=4) + '\n')
+    sys.stdout.write("-"*80 + "\n")
+
+async def main():
+    args = ElbManageArgs().args
+
+    try:
+        elb_pools = [await ElbPool.from_name(args.pool)] if args.pool else await ElbPool.all()
+
+        if args.list_instances:
+            await output(elb_pools)
+
+            if args.add_instance_identifiers or args.remove_instance_identifiers:
+                sys.stdout.write('\n*** Press <return> to continue to add/remove instances.')
+                v = input().strip()
+
+        if args.add_instance_identifiers:
+            # check_args guarantees that there is only one pool if instnaces
+            # to add are specified
+            await elb_pools[0].add(args.add_instance_identifiers)
+
+        if args.remove_instance_identifiers:
+            # check_args guarantees that there is only one pool if instnaces
+            # to remove are specified
+            await elb_pools[0].remove(args.remove_instance_identifiers)
+
+        if args.add_instance_identifiers or args.remove_instance_identifiers:
+            await output(elb_pools)
+
+
+    except Exception as e:
+        exit_with_msg(e)
+
+if __name__ == "__main__":
+    asyncio.run(main())

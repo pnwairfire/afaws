@@ -1,0 +1,9 @@
+--extra-index https://pypi.airfire.org/simple/
+-f https://pypi.airfire.org/simple/
+afscripting==1.1.2
+paramiko==2.4.2
+boto3==1.9.70
+tornado==5.1.1
+pycrypto==2.6.1
+tabulate==0.8.3
+ipython

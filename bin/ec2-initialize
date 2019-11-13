@@ -1,0 +1,77 @@
+#!/usr/bin/env python
+
+"""ec2-initialize: Script to initialize ec2 instances
+
+Use the help ('-h') option to see options and an example call.
+"""
+
+__author__      = "Joel Dubowy"
+
+import asyncio
+import logging
+import sys
+
+try:
+    from aws.ec2.initialization import InstanceInitializerSsh
+    from aws.scripting import exit_with_msg, AwsScriptArgs
+
+except ImportError as e:
+    import os
+    if not os.path.exists('/.dockerenv'):
+        print("""Run in docker:
+
+            docker run --rm -ti -v $PWD/:/aws/ -v $HOME/.aws/:/root/.aws/ \\
+                -v $HOME/.ssh:/root/.ssh aws {} -h
+        """.format(sys.argv[0]))
+        sys.exit(1)
+    else:
+        raise
+
+
+class Ec2InitializeArgs(AwsScriptArgs):
+
+    REQUIRED_ARGS = [
+        {
+            'short': '-i',
+            'long': '--instance-identifier',
+            'dest': 'instance_identifiers',
+            'help': "instance name or id; e.g. 'web-4', 'i-abc123', etc.",
+            'action': 'append',
+            'default': []
+        },
+        {
+            'short': '-k',
+            'long': '--ssh-key',
+            'help': "key for ssh'ing to ec2 instances"
+        }
+    ]
+    OPTIONAL_ARGS = [
+        {
+            'long': '--emulate',
+            'help': ("name or id of instances to emulate (for docker-compose"
+                " yaml files, makefiles, and EFS mounts")
+        }
+    ]
+
+
+    EXAMPLE_STRING = """Example calls:
+     > {script} --log-level INFO -k ~/.ssh/id_rsa -i test-2 -i test-3
+     > {script} --log-level INFO -k ~/.ssh/id_rsa -i test-2 -i test-3 \
+            --emulate test-1
+
+** When using Docker, remember to mount ssh key dir **
+    """.format(script=sys.argv[0])
+
+
+async def main():
+    args = Ec2InitializeArgs().args
+
+    try:
+        initializer = InstanceInitializerSsh(args.ssh_key, emulate=args.emulate)
+        await initializer.initialize(args.instance_identifiers)
+
+    except Exception as e:
+        exit_with_msg(e)
+
+if __name__ == "__main__":
+    asyncio.run(main())

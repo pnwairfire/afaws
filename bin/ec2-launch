@@ -1,0 +1,158 @@
+#!/usr/bin/env python
+
+"""ec2-launch: Script to launch ec2 instances
+
+Use the help ('-h') option to see options and an example call.
+"""
+
+__author__      = "Joel Dubowy"
+
+import asyncio
+import logging
+import sys
+
+try:
+    import afscripting
+
+    from aws.ec2.execute import FailedToSshError
+    from aws.ec2.initialization import InstanceInitializerSsh
+    from aws.ec2.launch import Ec2Launcher, Ec2CloneLauncher
+    from aws.ec2.resources import Instance
+    from aws.scripting import exit_with_msg, AwsScriptArgs
+
+except ImportError as e:
+    import os
+    if not os.path.exists('/.dockerenv'):
+        print("""Run in docker:
+
+            docker run --rm -ti -v $PWD/:/aws/ -v $HOME/.aws/:/root/.aws/ \\
+                -v $HOME/.ssh:/root/.ssh aws {} -h
+        """.format(sys.argv[0]))
+        sys.exit(1)
+    else:
+        raise
+
+
+class Ec2LauncherArgs(AwsScriptArgs):
+
+    REQUIRED_ARGS = [
+        {
+            'short': '-n',
+            'long': '--new-instance-name',
+            'dest': 'new_instance_names',
+            'help': "new instance name; e.g. 'web-4', 'staging-1', etc.",
+            'action': 'append',
+            'default': []
+        }
+    ]
+
+    OPTIONAL_ARGS = [
+        {
+            'long': '--image',
+            'help': ("name or id of an AMI; "
+                "e.g. 'web-5-2018-Nov-15', 'ami-abc123', etc.")
+        },
+        {
+            'long': '--instance',
+            'help': ("name or id of existing instance; "
+                "e.g. 'web-4', 'i-abc123', etc.")
+        },
+        {
+            'short': '-t',
+            'long': '--instance-type',
+            'help': "e.g. 't2.medium'"
+        },
+        {
+            'short': '-k',
+            'long': '--key-pair-name',
+            'help': "e.g. 'johns_key'"
+        },
+        {
+            'long': '--security-group',
+            'dest': 'security_groups',
+            'help': "security group name or id; ; required when not cloning existing instance",
+            'action': 'append',
+            'default': []
+        },
+        {
+            'long': '--ebs-volume-size',
+            "type": int,
+            'help': "Size of EBS volume (in GB); required when not cloning existing instance"
+        },
+        {
+            'long': '--ebs-device-name',
+            'help': "Name of device mounted to EBS volume; default: /dev/xvda",
+            'default': '/dev/xvda'
+        },
+        {
+            'long': '--tag',
+            'dest': 'tags',
+            'help': "tags; e.g. foo=bar",
+            'dest': "fields",
+            'action': afscripting.args.ExtractAndSetKeyValueAction,
+            'default': {}
+        },
+        {
+            'long': '--initialize',
+            'help': "initialize after launching",
+            "action": "store_true"
+        },
+        {
+            'long': '--ssh-key',
+            'help': ("key for ssh'ing to ec2 instances during initialization;"
+                " This is different than the AWS key pair name")
+        }
+    ]
+
+    EXAMPLE_STRING = """Example calls:
+     > {script} --log-level INFO --image web-5-2018-Nov-15 \\
+        -n web-5 -n web-6 -t t2.small --ebs-volume-size 32 \\
+        --security-group web-server-ports --security-group bluesky-web \\
+        -k johns_key
+
+     > {script} --log-level INFO --instance web-4 -n web-5 -n web-6
+
+     > {script} --log-level INFO --instance web-4 -n web-5 -n web-6 \\
+        --initialize --ssh-key /root/.ssh/id_rsa
+
+** When using Docker, remember to mount ssh key dir if initializing **
+    """.format(script=sys.argv[0])
+
+    def _check_args(self):
+        if not self.args.instance and not self.args.image:
+            exit_with_msg("Specify --image or --instance")
+
+        if self.args.instance and self.args.image:
+            exit_with_msg("Specify --image or --instance, but not both")
+
+        if self.args.initialize and not self.args.ssh_key:
+            exit_with_msg("--initialize requires --ssh-key")
+
+
+async def main():
+    args = Ec2LauncherArgs().args
+
+    try:
+        launcher = (Ec2CloneLauncher(args.instance, **args.__dict__)
+            if args.instance else Ec2Launcher(args.image, **args.__dict__))
+
+        new_instances = await launcher.launch(args.new_instance_names)
+
+        if args.initialize:
+            initializer = InstanceInitializerSsh(args.ssh_key, emulate=args.instance)
+            await initializer.initialize(new_instances)
+
+        logging.info("Launched the following instances")
+        for i in new_instances:
+            logging.info(" %s (%s) - %s", i.name,
+                i.id, i.classic_address.public_ip)
+
+    except FailedToSshError as e:
+        exit_with_msg("Failed to SSH during initialization.  "
+            "Wait a few minutes and try running ec2-initialize.")
+
+    except Exception as e:
+        exit_with_msg(e)
+
+if __name__ == "__main__":
+    asyncio.run(main())
