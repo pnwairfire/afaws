@@ -54,4 +54,4 @@ and the local code available and importable:
         -v $PWD/:/afaws/ \
         -v $HOME/.aws/:/root/.aws/ \
         -v $HOME/.ssh:/root/.ssh \
-        aws ipython
+        afaws ipython

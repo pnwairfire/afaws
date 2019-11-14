@@ -1,4 +1,4 @@
-# AWS
+# afaws
 
  - [General Setup](docs/SETUP.md)
  - [EC2 Scripts Usage](docs/USAGE-EC2.md)
