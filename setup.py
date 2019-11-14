@@ -34,7 +34,7 @@ setup(
     ],
     package_data={},
     url='https://github.com/pnwairfire/aws',
-    description='Utilities for managin AWS resources.',
+    description='Utilities for managing AWS resources.',
     install_requires=requirements,
     dependency_links=[
         "https://pypi.airfire.org/simple/afscripting/"
