@@ -36,7 +36,7 @@ to run scripts that execute commands via ssh
         aws /aws/bin/ec2-resources --log-level INFO \
         -t Image -i ami-abc123
 
-### ec2-manage
+### elb-manage
 
     docker run --rm -ti -v $PWD/:/aws/ -v $HOME/.aws/:/root/.aws/ \
         aws /aws/bin/elb-manage --log-level INFO -l
