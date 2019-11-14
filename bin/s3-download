@@ -12,13 +12,13 @@ import logging
 import sys
 
 try:
-    from aws.s3 import S3Downloader
-    from aws.scripting import exit_with_msg, AwsScriptArgs
+    from afaws.s3 import S3Downloader
+    from afaws.scripting import exit_with_msg, AwsScriptArgs
 
 except ImportError as e:
     print("""Run in docker:
 
-        docker run --rm -ti -v $PWD/:/aws/ -v $HOME/.aws/:/root/.aws/ \\
+        docker run --rm -ti -v $PWD/:/afaws/ -v $HOME/.aws/:/root/.aws/ \\
             aws {} -h
     """.format(sys.argv[0]))
     sys.exit(1)

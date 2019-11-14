@@ -1,7 +1,7 @@
 
 ## Build docker image
 
-    docker build -t aws .
+    docker build -t afaws .
 
 
 ## API credientials and IAM
@@ -51,7 +51,7 @@ Use docker to start an ipython session with all dependency python packages
 and the local code available and importable:
 
     docker run --rm -ti \
-        -v $PWD/:/aws/ \
+        -v $PWD/:/afaws/ \
         -v $HOME/.aws/:/root/.aws/ \
         -v $HOME/.ssh:/root/.ssh \
         aws ipython

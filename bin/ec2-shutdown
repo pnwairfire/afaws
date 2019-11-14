@@ -12,15 +12,15 @@ import logging
 import sys
 
 try:
-    from aws.ec2.shutdown import Ec2Shutdown
-    from aws.scripting import exit_with_msg, AwsScriptArgs
+    from afaws.ec2.shutdown import Ec2Shutdown
+    from afaws.scripting import exit_with_msg, AwsScriptArgs
 
 except ImportError as e:
     import os
     if not os.path.exists('/.dockerenv'):
         print("""Run in docker:
 
-            docker run --rm -ti -v $PWD/:/aws/ -v $HOME/.aws/:/root/.aws/ \\
+            docker run --rm -ti -v $PWD/:/afaws/ -v $HOME/.aws/:/root/.aws/ \\
                 aws {} -h
         """.format(sys.argv[0]))
         sys.exit(1)

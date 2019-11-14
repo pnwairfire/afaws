@@ -20,11 +20,11 @@ RUN pip3 install --no-binary gdal -r requirements.txt
 # but doesn't seem to have any effect
 RUN apk del --purge .build-deps
 
-RUN mkdir /aws/
-WORKDIR /aws/
-ENV PATH="/aws/bin/:${PATH}"
-ENV PYTHONPATH="/aws/:${PYTHONPATH}"
-COPY bin/ /aws/bin/
-COPY aws/ /aws/aws/
+RUN mkdir /afaws/
+WORKDIR /afaws/
+ENV PATH="/afaws/bin/:${PATH}"
+ENV PYTHONPATH="/afaws/:${PYTHONPATH}"
+COPY bin/ /afaws/bin/
+COPY afaws/ /afaws/afaws/
 
 CMD ec2-launch -h

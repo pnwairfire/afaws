@@ -12,16 +12,16 @@ import logging
 import sys
 
 try:
-    from aws.ec2.initialization import InstanceInitializerSsh
-    from aws.scripting import exit_with_msg, AwsScriptArgs, get_config
-    from aws.config import Config
+    from afaws.ec2.initialization import InstanceInitializerSsh
+    from afaws.scripting import exit_with_msg, AwsScriptArgs, get_config
+    from afaws.config import Config
 
 except ImportError as e:
     import os
     if not os.path.exists('/.dockerenv'):
         print("""Run in docker:
 
-            docker run --rm -ti -v $PWD/:/aws/ -v $HOME/.aws/:/root/.aws/ \\
+            docker run --rm -ti -v $PWD/:/afaws/ -v $HOME/.aws/:/root/.aws/ \\
                 -v $HOME/.ssh:/root/.ssh aws {} -h
         """.format(sys.argv[0]))
         sys.exit(1)

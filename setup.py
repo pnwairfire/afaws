@@ -1,13 +1,13 @@
 from setuptools import setup, find_packages
 
-from aws import __version__
+from afaws import __version__
 
 requirements = []
 with open('requirements.txt') as f:
     requirements = [r for r in f.read().splitlines() if not r.startswith('-')]
 
 setup(
-    name='aws',
+    name='afaws',
     version=__version__,
     license='GPLv3+',
     author='Joel Dubowy',
@@ -33,7 +33,7 @@ setup(
         "Operating System :: MacOS"
     ],
     package_data={},
-    url='https://github.com/pnwairfire/aws',
+    url='https://github.com/pnwairfire/afaws',
     description='Utilities for managing AWS resources.',
     install_requires=requirements,
     dependency_links=[
