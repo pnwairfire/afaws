@@ -31,7 +31,7 @@ class S3Downloader(object):
 
     def download_one(self, key, path=None):
         # strip path just in case called by client directly with path defined
-        path = path.strip('/')
+        path = path and path.strip('/')
         key = key.lstrip('/')
 
         logging.info("Downloading %s > %s", self.bucket_name, key)
