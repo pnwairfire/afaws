@@ -12,14 +12,13 @@ RUN apk --update add --no-cache --virtual .build-deps \
 
 RUN apk add --update vim curl
 
-# The following is supposed to decrease the size of the image,
-# but doesn't seem to have any effect
-RUN apk del --purge .build-deps
-
 WORKDIR /tmp/
 COPY requirements.txt /tmp/requirements.txt
 RUN pip3 install --no-binary gdal -r requirements.txt
 
+# The following is supposed to decrease the size of the image,
+# but doesn't seem to have any effect
+RUN apk del --purge .build-deps
 
 RUN mkdir /aws/
 WORKDIR /aws/
