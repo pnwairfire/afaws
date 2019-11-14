@@ -1,9 +1,3 @@
-
-## Build docker image
-
-    docker build -t afaws .
-
-
 ## API credientials and IAM
 
 The `aws` package looks for AWS API key and secret in
@@ -45,6 +39,11 @@ Create a file, `config.json` in the root of this repo, with the following conten
 ```
 
 
+## Build docker image
+
+    docker build -t afaws .
+
+
 ## Python session
 
 Use docker to start an ipython session with all dependency python packages
@@ -55,3 +54,8 @@ and the local code available and importable:
         -v $HOME/.aws/:/root/.aws/ \
         -v $HOME/.ssh:/root/.ssh \
         afaws ipython
+
+
+## Installing python package via pip
+
+    pip install --extra-index https://pypi.airfire.org/simple afaws==0.1.0
