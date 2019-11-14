@@ -60,4 +60,5 @@ and the local code available and importable:
 
 ## Usage:
 
- - [EC2 scripts](USAGE-EC2.md)
+ - [EC2 scripts](docs/USAGE-EC2.md)
+ - [S3 scripts](docs/USAGE-S3.md)
