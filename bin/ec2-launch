@@ -108,7 +108,7 @@ class Ec2LauncherArgs(AwsScriptArgs):
     EXAMPLE_STRING = """Example calls:
      > {script} --log-level INFO --image web-5-2018-Nov-15 \\
         -n web-5 -n web-6 -t t2.small --ebs-volume-size 32 \\
-        --security-group web-server-ports --security-group bluesky-web \\
+        --security-group web-server-ports --security-group web-ports \\
         -k johns_key --config-file ./config.json
 
      > {script} --log-level INFO --instance web-4 -n web-5 -n web-6 \\
@@ -137,7 +137,7 @@ async def main():
 
     try:
         launcher = (Ec2CloneLauncher(args.instance, config, **args.__dict__)
-            if args.instance else Ec2Launcher(args.image, **args.__dict__))
+            if args.instance else Ec2Launcher(args.image, config, **args.__dict__))
 
         new_instances = await launcher.launch(args.new_instance_names)
 

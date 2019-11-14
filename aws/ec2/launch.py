@@ -169,7 +169,7 @@ class Ec2Launcher(object):
         for rule_args in self._config('per_instance_security_group_rules'):
             sg_manager = SecurityGroupManager(rule_args[0])
             for i in instances:
-                args = rule_args[1:] + (i.id, )
+                args = rule_args[1:] + [i.id]
                 await sg_manager.add_rule(*args)
 
 
