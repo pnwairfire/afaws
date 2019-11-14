@@ -36,7 +36,7 @@ to run scripts that execute commands via ssh
         aws /aws/bin/ec2-resources --log-level INFO \
         -t Image -i ami-abc123
 
-### elb-manage
+### ec2-manage
 
     docker run --rm -ti -v $PWD/:/aws/ -v $HOME/.aws/:/root/.aws/ \
         aws /aws/bin/elb-manage --log-level INFO -l
@@ -49,24 +49,24 @@ to run scripts that execute commands via ssh
         aws /aws/bin/elb-manage --log-level INFO \
         -p test -a test-1
 
-### elb-execute
+### ec2-execute
 
     docker run --rm -ti -v $PWD/:/aws/ -v $HOME/.aws/:/root/.aws/ \
         -v $HOME/.ssh:/root/.ssh aws /aws/bin/ec2-execute \
         --log-level INFO -k /root/.ssh/id_rsa.pem \
         -i test-1 -c 'echo foo'
 
-### ecs-network
+### ec2-network
 
     (TODO: Add example)
 
-### elb-initialize
+### ec2-initialize
 
     docker run --rm -ti -v $PWD/:/aws/ -v $HOME/.aws/:/root/.aws/ \
         -v $HOME/.ssh:/root/.ssh aws /aws/bin/ec2-initialize --log-level INFO \
         -k /root/.ssh/id_rsa.pem --config-file ./config.json -i test-2
 
-### elb-reboot
+### ec2-reboot
 
     docker run --rm -ti -v $PWD/:/aws/ -v $HOME/.aws/:/root/.aws/ \
         -v $HOME/.ssh:/root/.ssh aws /aws/bin/ec2-reboot \

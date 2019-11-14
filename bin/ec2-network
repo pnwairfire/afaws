@@ -41,8 +41,8 @@ class NetworkManagementArgs(AwsScriptArgs):
             'short': '-a',
             'long': '--security-group-add-rule',
             'help': ("Add security group rule;"
-                "format '<sg_identifier>,<in|out>,<protocol>,<port_range>,<instance_identifier>"
-                "e.g. 'playground-v3,in,tcp,8080:8082,web-3")
+                " format '<sg_identifier>,<in|out>,<protocol>,<port_range>,<instance_identifier>"
+                " e.g. 'playground-v3,in,tcp,8080:8082,web-3")
         },
         {
             'short': '-r',
