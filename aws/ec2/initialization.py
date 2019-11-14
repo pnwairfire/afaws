@@ -4,7 +4,6 @@ import os
 import sys
 
 from .execute import Ec2SshExecuter
-from .. import config
 
 __all__ = [
     'InstanceInitializer'
@@ -12,11 +11,12 @@ __all__ = [
 
 class InstanceInitializerSsh(object):
 
-    def __init__(self, ssh_key, emulate=None):
+    def __init__(self, ssh_key, config, emulate=None):
+        self._config = config
         self._ssh_key = ssh_key
         self._emulate = emulate
         self._executer = None
-        self._efs_volumes = config.DEFAULT_EFS_VOLUMES
+        self._efs_volumes = self._config('default_efs_volumes')
         self._yaml_files = None
         self._makefiles = None
 
@@ -90,7 +90,8 @@ class InstanceInitializerSsh(object):
 
     async def _find_yaml_files(self, executer):
         logging.info("Finding yaml files on %s", executer._ips)
-        return await self._find_files(executer, config.DOCKER_COMPOSE_YAML_ROOT_DIRS,
+        return await self._find_files(executer,
+            self._config('docker_compose_yaml_root_dirs'),
             'docker-compose*.yml')
 
     async def _get_restart_docker_compose_cmds(self, executer):
@@ -107,7 +108,8 @@ class InstanceInitializerSsh(object):
 
     async def _find_makefiles(self, executer):
         logging.info("Finding Makefiles on %s", executer._ips)
-        return await self._find_files(executer, config.MAKEFILE_ROOT_DIRS, 'Makefile')
+        return await self._find_files(executer,
+            self._config('makefile_root_dirs'), 'Makefile')
 
     async def _get_restart_make_cmds(self, executer):
         makefiles = self._makefiles or await self._find_makefiles(executer)
@@ -133,7 +135,7 @@ class InstanceInitializerSsh(object):
 #     def _mount_efs_volumes(self):
 #         cmds = [("sudo mount -t nfs4 -o nfsvers=4.1,rsize=1048576,"
 #                  "wsize=1048576,hard,timeo=600,retrans=2,noresvport "
-#                  "{}/ {}".format(vol[0], vol[1])) for vol in config.DEFAULT_EFS_VOLUMES]
+#                  "{}/ {}".format(vol[0], vol[1])) for vol in self._config('default_efs_volumes')]
 #         self._ec2_ssm_executer.execute(cmds)
 
 #     def _restart_docker_compose(self):

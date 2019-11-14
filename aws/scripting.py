@@ -29,3 +29,13 @@ class AwsScriptArgs(abc.ABC):
     def _check_args(self):
         # Override in derived classes
         pass
+
+
+def get_config(args):
+    config = {}
+    if args.config_file_options:
+        config.update(args.config_file_options)
+    if args.config_options:
+        config.update(args.config_options)
+
+    return config

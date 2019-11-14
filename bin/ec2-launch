@@ -18,7 +18,8 @@ try:
     from aws.ec2.initialization import InstanceInitializerSsh
     from aws.ec2.launch import Ec2Launcher, Ec2CloneLauncher
     from aws.ec2.resources import Instance
-    from aws.scripting import exit_with_msg, AwsScriptArgs
+    from aws.scripting import exit_with_msg, AwsScriptArgs, get_config
+    from aws.config import Config
 
 except ImportError as e:
     import os
@@ -108,12 +109,13 @@ class Ec2LauncherArgs(AwsScriptArgs):
      > {script} --log-level INFO --image web-5-2018-Nov-15 \\
         -n web-5 -n web-6 -t t2.small --ebs-volume-size 32 \\
         --security-group web-server-ports --security-group bluesky-web \\
-        -k johns_key
-
-     > {script} --log-level INFO --instance web-4 -n web-5 -n web-6
+        -k johns_key --config-file ./config.json
 
      > {script} --log-level INFO --instance web-4 -n web-5 -n web-6 \\
-        --initialize --ssh-key /root/.ssh/id_rsa
+        --config-file ./config.json
+
+     > {script} --log-level INFO --instance web-4 -n web-5 -n web-6 \\
+        --initialize --ssh-key /root/.ssh/id_rsa --config-file ./config.json
 
 ** When using Docker, remember to mount ssh key dir if initializing **
     """.format(script=sys.argv[0])
@@ -131,15 +133,17 @@ class Ec2LauncherArgs(AwsScriptArgs):
 
 async def main():
     args = Ec2LauncherArgs().args
+    config = Config(get_config(args))
 
     try:
-        launcher = (Ec2CloneLauncher(args.instance, **args.__dict__)
+        launcher = (Ec2CloneLauncher(args.instance, config, **args.__dict__)
             if args.instance else Ec2Launcher(args.image, **args.__dict__))
 
         new_instances = await launcher.launch(args.new_instance_names)
 
         if args.initialize:
-            initializer = InstanceInitializerSsh(args.ssh_key, emulate=args.instance)
+            initializer = InstanceInitializerSsh(args.ssh_key, config,
+                emulate=args.instance)
             await initializer.initialize(new_instances)
 
         logging.info("Launched the following instances")

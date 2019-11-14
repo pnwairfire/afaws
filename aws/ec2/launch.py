@@ -7,7 +7,6 @@ from botocore.exceptions import ClientError
 
 from .resources import SecurityGroup, Image, Instance
 from .network import SecurityGroupManager
-from .. import config
 from ..asyncutils import run_in_loop_executor
 
 __all__ = [
@@ -23,7 +22,8 @@ __all__ = [
 
 class Ec2Launcher(object):
 
-    def __init__(self, image_identifier, **options):
+    def __init__(self, image_identifier, config, **options):
+        self._config = config
         self._client = boto3.client('ec2')
         self._ec2 = boto3.resource('ec2')
         self._identifier = image_identifier
@@ -157,7 +157,7 @@ class Ec2Launcher(object):
                 if instance.classic_address else '?')
             await run_in_loop_executor(
                 self._client.associate_iam_instance_profile,
-                IamInstanceProfile=config.IAM_INSTANCE_PROFILE,
+                IamInstanceProfile=self._config('iam_instance_profile'),
                 InstanceId = instance.id
             )
 
@@ -166,7 +166,7 @@ class Ec2Launcher(object):
     ## Post Launch
 
     async def _add_instances_to_security_groups(self, instances):
-        for rule_args in config.PER_INSTANCE_SECURITY_GROUP_RULES:
+        for rule_args in self._config('per_instance_security_group_rules'):
             sg_manager = SecurityGroupManager(rule_args[0])
             for i in instances:
                 args = rule_args[1:] + (i.id, )

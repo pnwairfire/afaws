@@ -16,7 +16,8 @@ try:
     from aws.ec2.execute import FailedToSshError
     from aws.ec2.initialization import InstanceInitializerSsh
     from aws.ec2.reboot import Ec2Reboot
-    from aws.scripting import exit_with_msg, AwsScriptArgs
+    from aws.scripting import exit_with_msg, AwsScriptArgs, get_config
+    from aws.config import Config
 
 except ImportError as e:
     print("""Run in docker:
@@ -56,7 +57,8 @@ class Ec2RebootArgs(AwsScriptArgs):
 
     EXAMPLE_STRING = """Example calls:
      > {script} --log-level INFO -i test-2 \\
-        --initialize --ssh-key /root/.ssh/id_rsa
+        --initialize --ssh-key /root/.ssh/id_rsa \\
+        --config-file ./config.json
     """.format(script=sys.argv[0])
 
     def _check_args(self):
@@ -66,6 +68,7 @@ class Ec2RebootArgs(AwsScriptArgs):
 
 async def main():
     args = Ec2RebootArgs().args
+    config = Config(get_config(args))
 
     try:
         instances = await Ec2Reboot().reboot(args.instance_identifiers)
@@ -73,7 +76,7 @@ async def main():
         if args.initialize:
             logging.info("Waiting 5 seconds before intializing")
             time.sleep(5)
-            initializer = InstanceInitializerSsh(args.ssh_key)
+            initializer = InstanceInitializerSsh(args.ssh_key, config)
             await initializer.initialize(instances)
 
     except FailedToSshError as e:

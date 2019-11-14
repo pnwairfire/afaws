@@ -19,7 +19,31 @@ containers
 
 ## Configuration
 
-TODO: fill in this section once configuration is figured out
+Create a file, `config.json` in the root of this repo, with the following contents, modified appropriately:
+
+```
+{
+    "config": {
+        "iam_instance_profile": {
+            "Arn": "arn:aws:iam::abc123:instance-profile/aws-automator-ssm-role",
+            "Name": "role-name"
+        },
+        "per_instance_security_group_rules": [
+            ["security-group", true, "tcp", 99997, 99998]
+        ],
+        "default_efs_volumes": [
+            ["fs-abc123.efs.us-west-2.amazonaws.com:/", "/foo/bar/"]
+        ],
+        "makefile_root_dirs": [
+            "/path/to/projects/with/Makefiles/"
+        ],
+        "docker_compose_yaml_root_dirs": [
+            "/path/to/dir/with/docker-compose/yaml/files/",
+            "/another/pathx/"
+        ]
+    }
+}
+```
 
 
 ## Python session

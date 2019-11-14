@@ -31,7 +31,7 @@ to run scripts that execute commands via ssh
         -t Instance -i test-* -i staging-*
     docker run --rm -ti -v $PWD/:/aws/ -v $HOME/.aws/:/root/.aws/ \
         aws /aws/bin/ec2-resources --log-level INFO \
-        -t SecurityGroup -i bluesky-web
+        -t SecurityGroup -i web-ports
     docker run --rm -ti -v $PWD/:/aws/ -v $HOME/.aws/:/root/.aws/ \
         aws /aws/bin/ec2-resources --log-level INFO \
         -t Image -i ami-abc123
@@ -64,14 +64,14 @@ to run scripts that execute commands via ssh
 
     docker run --rm -ti -v $PWD/:/aws/ -v $HOME/.aws/:/root/.aws/ \
         -v $HOME/.ssh:/root/.ssh aws /aws/bin/ec2-initialize --log-level INFO \
-        -k /root/.ssh/id_rsa.pem -i test-2
+        -k /root/.ssh/id_rsa.pem --config-file ./config.json -i test-2
 
 ### elb-reboot
 
     docker run --rm -ti -v $PWD/:/aws/ -v $HOME/.aws/:/root/.aws/ \
         -v $HOME/.ssh:/root/.ssh aws /aws/bin/ec2-reboot \
         --log-level INFO --initialize -k /root/.ssh/id_rsa.pem \
-        -i test-2
+        --config-file ./config.json -i test-2
 
 
 
@@ -84,7 +84,8 @@ First, launch and initialize the instances, based off on the existing test insta
     docker run --rm -ti -v $PWD/:/aws/ -v $HOME/.aws/:/root/.aws/ \
         -v $HOME/.ssh:/root/.ssh aws /aws/bin/ec2-launch \
         --log-level INFO --instance test-1 -n test-2 \
-        --initialize --ssh-key /root/.ssh/id_rsa.pem
+        --initialize --ssh-key /root/.ssh/id_rsa.pem \
+        --config-file ./config.json
 
 Update DNS and manually test it.  Once confident that it's working, add to the
 appropriate ELB pool:
