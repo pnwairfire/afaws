@@ -8,6 +8,7 @@ import paramiko
 import tornado.gen
 
 from .resources import Instance
+from .ssh import SshClient
 
 __all__ = [
     'FailedToSshError',
@@ -25,7 +26,7 @@ class Ec2SshExecuter(object):
             instances_or_identifiers = [instances_or_identifiers]
         self._instances_or_identifiers = instances_or_identifiers
 
-        self._cert = paramiko.RSAKey.from_private_key_file(ssh_key)
+        self._ssh_key = ssh_key
         self._ips = None
 
     async def ips(self):
@@ -82,26 +83,21 @@ class Ec2SshExecuter(object):
         return output
 
     async def _execute_commands(self, commands, ip, output):
-        client = paramiko.SSHClient()
-        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        client.connect(hostname=ip, username="ubuntu", pkey=self._cert)
+        with SshClient(self._ssh_key, ip) as client:
+            for cmd in commands:
+                logging.info("Running %s on %s", cmd, ip)
+                stdin, stdout, stderr = await client.execute(cmd)
 
-        for cmd in commands:
-            logging.info("Running %s on %s", cmd, ip)
-            stdin, stdout, stderr = client.exec_command(cmd)
-
-            # TODO: check return code somehow, and abort or at least give error message
-            #   if failed?  <-- would nee to know to skip some errors (e.g. dont
-            #   abort if mount failes due to volume being already mounted)
-            for k in ('STDOUT', 'STDERR'):
-                o = stdout if k == 'STDOUT' else stderr
-                log_func = logging.debug if k == 'STDOUT' else logging.warn
-                out = o.readlines()
-                self._log_output(cmd, ip, out, log_func, k)
-                if out:
-                    output[k][ip].append((cmd, out))
-
-        client.close()
+                # TODO: check return code somehow, and abort or at least give error message
+                #   if failed?  <-- would nee to know to skip some errors (e.g. dont
+                #   abort if mount failes due to volume being already mounted)
+                for k in ('STDOUT', 'STDERR'):
+                    o = stdout if k == 'STDOUT' else stderr
+                    log_func = logging.debug if k == 'STDOUT' else logging.warn
+                    out = o.readlines()
+                    self._log_output(cmd, ip, out, log_func, k)
+                    if out:
+                        output[k][ip].append((cmd, out))
 
     def _log_output(self, cmd, ip, lines, log_func, stream_name):
             if lines:
