@@ -4,6 +4,8 @@ import sys
 import traceback
 
 import afscripting
+# note: afconfig is installed by afscripting
+import afconfig
 
 __all__ = [
     'exit_with_msg',
@@ -32,10 +34,17 @@ class AwsScriptArgs(abc.ABC):
 
 
 def get_config(args):
+    """Merges config file and command line config overrides
+
+    Note that afconfig.merge_configs merges in place
+    """
+
     config = {}
+
     if args.config_file_options:
-        config.update(args.config_file_options)
+        afconfig.merge_configs(config, args.config_file_options)
+
     if args.config_options:
-        config.update(args.config_options)
+        afconfig.merge_configs(config, args.config_options)
 
     return config
