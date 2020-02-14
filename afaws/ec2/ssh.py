@@ -42,7 +42,7 @@ class SshClient(object):
     async def execute(self, cmd):
         logging.info("About to run %s on %s", cmd, self._ip)
         return await run_in_loop_executor(
-            self.client.run, cmd
+            self.client.run, cmd, hide=True
         )
 
     async def put(self, local_file_path, remote_file_path):
