@@ -56,7 +56,7 @@ class InstanceInitializerSsh(object):
     async def _find_files(self, executer, root_dirs, filename_pattern, maxdepth=2):
         files = []
         for root_dir in root_dirs:
-            cmd = "find {} -name {} -maxdepth {}".format(root_dir,
+            cmd = "sudo find {} -name {} -maxdepth {}".format(root_dir,
                 filename_pattern, maxdepth)
             output = await executer.execute(cmd)
             if output['STDOUT']:
