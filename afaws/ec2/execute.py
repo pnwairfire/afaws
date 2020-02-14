@@ -93,10 +93,10 @@ class Ec2SshExecuter(object):
 
                 for k in ('STDOUT', 'STDERR'):
                     out = getattr(result, k.lower()).strip()
-                    log_func = logging.debug if k == 'STDOUT' else logging.warn
-                    self._log_output(cmd, ip, out, log_func, k)
                     if out:
                         out = [o + '\n' for o in out.split('\n')]
+                        log_func = logging.debug if k == 'STDOUT' else logging.warn
+                        self._log_output(cmd, ip, out, log_func, k)
                         output[k][ip].append((cmd, out))
 
     def _log_output(self, cmd, ip, lines, log_func, stream_name):
