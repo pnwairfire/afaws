@@ -51,7 +51,7 @@ class InstanceInitializerSsh(object):
                 + await self._get_restart_docker_compose_cmds(executer)
                 + await self._get_restart_make_cmds(executer)
             )
-        await executer.execute(cmds)
+        await executer.execute(cmds, ignore_errors=True)
 
     async def _find_files(self, executer, root_dirs, filename_pattern, maxdepth=2):
         files = []

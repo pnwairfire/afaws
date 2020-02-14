@@ -65,7 +65,7 @@ class Ec2SshExecuter(object):
                 await tornado.gen.sleep(self.SSH_RETRY_WAIT)
 
 
-    async def execute(self, commands):
+    async def execute(self, commands, ignore_errors=False):
         # accept single stirng value for 'commands'
         if hasattr(commands, 'lower'):
             commands = [commands]
@@ -76,16 +76,16 @@ class Ec2SshExecuter(object):
             "STDOUT": defaultdict(lambda: [])
         }
         await asyncio.gather(*[
-            self._execute_commands(commands, ip, output)
+            self._execute_commands(commands, ip, output, ignore_errors)
                 for ip in await self.ips()
         ])
         return output
 
-    async def _execute_commands(self, commands, ip, output):
+    async def _execute_commands(self, commands, ip, output, ignore_errors):
         with SshClient(self._ssh_key, ip) as client:
             for cmd in commands:
                 logging.info("Running %s on %s", cmd, ip)
-                result = await client.execute(cmd)
+                result = await client.execute(cmd, ignore_errors=ignore_errors)
 
                 # TODO: check result.return_code, and abort or at least give error message
                 #   if failed?  <-- would nee to know to skip some errors (e.g. dont

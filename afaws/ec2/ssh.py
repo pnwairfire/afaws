@@ -15,6 +15,7 @@ import logging
 import os
 
 from fabric.connection import Connection
+from invoke.exceptions import UnexpectedExit
 
 from ..asyncutils import run_in_loop_executor
 
@@ -39,11 +40,19 @@ class SshClient(object):
 
         return self.client
 
-    async def execute(self, cmd):
+    async def execute(self, cmd, ignore_errors=False):
         logging.info("About to run %s on %s", cmd, self._ip)
-        return await run_in_loop_executor(
-            self.client.run, cmd, hide=True
-        )
+        try:
+            return await run_in_loop_executor(
+                self.client.run, cmd, hide=True
+            )
+        except UnexpectedExit as e:
+            if ignore_errors:
+                return e.result
+            raise
+
+        # TODO: handle other exceptions?
+
 
     async def put(self, local_file_path, remote_file_path):
         """Uploads local file(s) to remote server, recursively if passed a
