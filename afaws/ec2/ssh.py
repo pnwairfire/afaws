@@ -14,7 +14,7 @@ or
 import logging
 import os
 
-import paramiko
+from fabric.connection import Connection
 
 from ..asyncutils import run_in_loop_executor
 
@@ -34,16 +34,15 @@ class SshClient(object):
 
     def _create_client(self):
         if self.client is None:
-            self.client = paramiko.SSHClient()
-            self.client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-            cert = paramiko.RSAKey.from_private_key_file(self._ssh_key)
-            self.client.connect(hostname=self._ip, username="ubuntu", pkey=cert)
+            self.client = Connection(host=self._ip, user="ubuntu",
+                connect_kwargs={"key_filename": self._ssh_key})
+
         return self.client
 
     async def execute(self, cmd):
         logging.info("About to run %s on %s", cmd, self._ip)
         return await run_in_loop_executor(
-            self.client.exec_command, cmd
+            self.client.run, cmd
         )
 
     async def put(self, local_file_path, remote_file_path):

@@ -4,7 +4,6 @@ import time
 from collections import defaultdict
 
 #import boto3
-import paramiko
 import tornado.gen
 
 from .resources import Instance
@@ -86,17 +85,18 @@ class Ec2SshExecuter(object):
         with SshClient(self._ssh_key, ip) as client:
             for cmd in commands:
                 logging.info("Running %s on %s", cmd, ip)
-                stdin, stdout, stderr = await client.execute(cmd)
+                result = await client.execute(cmd)
 
-                # TODO: check return code somehow, and abort or at least give error message
+                # TODO: check result.return_code, and abort or at least give error message
                 #   if failed?  <-- would nee to know to skip some errors (e.g. dont
                 #   abort if mount failes due to volume being already mounted)
+
                 for k in ('STDOUT', 'STDERR'):
-                    o = stdout if k == 'STDOUT' else stderr
+                    out = getattr(result, k.lower()).strip()
                     log_func = logging.debug if k == 'STDOUT' else logging.warn
-                    out = o.readlines()
                     self._log_output(cmd, ip, out, log_func, k)
                     if out:
+                        out = [o + '\n' for o in out.split('\n')]
                         output[k][ip].append((cmd, out))
 
     def _log_output(self, cmd, ip, lines, log_func, stream_name):
