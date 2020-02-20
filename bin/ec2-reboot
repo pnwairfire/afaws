@@ -23,7 +23,7 @@ except ImportError as e:
     print("""Run in docker:
 
         docker run --rm -ti -v $PWD/:/afaws/ -v $HOME/.aws/:/root/.aws/ \\
-            -v $HOME/.ssh:/root/.ssh aws {} -h
+            -v $HOME/.ssh:/root/.ssh afaws {} -h
     """.format(sys.argv[0]))
     sys.exit(1)
 
