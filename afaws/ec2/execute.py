@@ -92,7 +92,7 @@ class Ec2SshExecuter(object):
                 #   abort if mount failes due to volume being already mounted)
 
                 for k in ('STDOUT', 'STDERR'):
-                    out = getattr(result, k.lower()).strip()
+                    out = getattr(result, k.lower()).strip().rstrip('\n')
                     if out:
                         out = [o + '\n' for o in out.split('\n')]
                         log_func = logging.debug if k == 'STDOUT' else logging.warn
