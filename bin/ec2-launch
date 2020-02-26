@@ -94,6 +94,10 @@ class Ec2LauncherArgs(AwsScriptArgs):
             'default': {}
         },
         {
+            'long': '--instance-initiated-shutdown-behavior',
+            'help': 'whether an instance stops or terminates when you initiate shutdown from the instance'
+        },
+        {
             'long': '--initialize',
             'help': "initialize after launching",
             "action": "store_true"

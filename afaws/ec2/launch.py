@@ -63,6 +63,12 @@ class Ec2Launcher(object):
                 'size': self._options['ebs_volume_size']
             }]
 
+        self._instance_initiated_shutdown_behavior = self._options.get(
+            'instance_initiated_shutdown_behavior') or 'stop'
+        if self._instance_initiated_shutdown_behavior not in ('stop', 'terminate'):
+            raise RuntimeError("'instance_initiated_shutdown_behavior' must "
+                "be 'stop' or 'terminate', if set")
+
         # if not self._options.get('subnet'):
         #     raise RuntimeError("'subnet' must be defined")
         # self._subnet = self._ec2.Subnet(options['subnet'])
@@ -134,6 +140,7 @@ class Ec2Launcher(object):
             "MaxCount": num_new_instance_names,
             "SecurityGroupIds": self._security_group_ids,
             "BlockDeviceMappings": block_device_mappings,
+            "InstanceInitiatedShutdownBehavior": self._instance_initiated_shutdown_behavior,
             # TODO: can we name it here rather than create tag below ?
             # KeyName='mykeyname',
         }
@@ -146,6 +153,8 @@ class Ec2Launcher(object):
         logging.info("  SecurityGroupIds: %s", self._security_group_ids)
         logging.info("  EBS size(s):  %s", ', '.join([str(d['Ebs']['VolumeSize'])
             for d in block_device_mappings]))
+        logging.info("  InstanceInitiatedShutdownBehavior: %s",
+            self._instance_initiated_shutdown_behavior)
         instances = await Instance.create_multiple(self._new_instance_names,
             tags=self._options.get('tags', {}), **kwargs)
         # at this point, they must all be running
