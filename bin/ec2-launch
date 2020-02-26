@@ -18,6 +18,7 @@ try:
     from afaws.ec2.initialization import InstanceInitializerSsh
     from afaws.ec2.launch import Ec2Launcher, Ec2CloneLauncher
     from afaws.ec2.resources import Instance
+    from afaws.ec2.shutdown import AutoShutdownScheduler
     from afaws.scripting import exit_with_msg, AwsScriptArgs, get_config
     from afaws.config import Config
 
@@ -98,6 +99,11 @@ class Ec2LauncherArgs(AwsScriptArgs):
             'help': 'whether an instance stops or terminates when you initiate shutdown from the instance'
         },
         {
+            'long': '--minutes-until-auto-shutdown',
+            "type": int,
+            'help': "Number of minutes to wait before instances shut themselves down"
+        },
+        {
             'long': '--initialize',
             'help': "initialize after launching",
             "action": "store_true"
@@ -120,6 +126,13 @@ class Ec2LauncherArgs(AwsScriptArgs):
 
      > {script} --log-level INFO --instance web-4 -n web-5 -n web-6 \\
         --initialize --ssh-key /root/.ssh/id_rsa --config-file ./config.json
+
+     > {script} --log-level INFO --image web-5-2018-Nov-15 \\
+        -n web-5 -n web-6 -t t2.small --ebs-volume-size 32 \\
+        --security-group web-server-ports --security-group web-ports \\
+        -k johns_key --config-file ./config.json \\
+        --instance-initiated-shutdown-behavior terminate \\
+        --minutes-until-auto-shutdown  120
 
 ** When using Docker, remember to mount ssh key dir if initializing **
     """.format(script=sys.argv[0])
@@ -144,6 +157,12 @@ async def main():
             if args.instance else Ec2Launcher(args.image, config, **args.__dict__))
 
         new_instances = await launcher.launch(args.new_instance_names)
+
+        if args.minutes_until_auto_shutdown:
+            auto_terminator = AutoShutdownScheduler(args.ssh_key)
+            await auto_terminator.schedule_termination(new_instances,
+                args.minutes_until_auto_shutdown)
+
 
         if args.initialize:
             initializer = InstanceInitializerSsh(args.ssh_key, config,
