@@ -43,6 +43,7 @@ class AutoShutdownScheduler(object):
         logging.info("Scheduling auto-shutdown in %s minutes",
             minutes_until_auto_shutdown)
         executer = Ec2SshExecuter(self._ssh_key, instances_or_identifiers)
+        await executer.wait_for_ssh_connectivity()
         await executer.execute("which at || sudo apt-get install -y at")
         await executer.execute('echo "sudo halt" | at now + {} minutes'.format(
             minutes_until_auto_shutdown))
