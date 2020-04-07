@@ -11,9 +11,13 @@ from ..asyncutils import run_in_loop_executor
 
 __all__ = [
     'Ec2Launcher',
-    'Ec2CloneLauncher'
+    'Ec2CloneLauncher',
+    'PostLaunchFailure'
 ]
 
+
+class PostLaunchFailure(Exception):
+    pass
 
 ##
 ## Launchers
@@ -37,7 +41,12 @@ class Ec2Launcher(object):
         self._ensure_new_instance_fields_set()
         await self._validate_new_instance_names(new_instance_names)
         instances = await self._create_instances()
-        await self._post_launch_tasks(instances)
+        try:
+            await self._associate_iam_instance_profile(instances)
+            await self._post_launch_tasks(instances)
+        except Exception as e:
+            raise PostLaunchFailure(str(e), instances)
+
         return instances
 
 
@@ -159,7 +168,13 @@ class Ec2Launcher(object):
             tags=self._options.get('tags', {}), **kwargs)
         # at this point, they must all be running
 
-        logging.info("%s instances running", num_new_instance_names)
+        logging.info("%s instances running", len(instances))
+        return instances
+
+    ## Post Launch
+
+    async def _associate_iam_instance_profile(self, instances):
+
         for instance in instances:
             logging.info("  %s - %s", instance.name,
                 instance.classic_address.public_ip
@@ -169,10 +184,6 @@ class Ec2Launcher(object):
                 IamInstanceProfile=self._config('iam_instance_profile'),
                 InstanceId = instance.id
             )
-
-        return instances
-
-    ## Post Launch
 
     async def _add_instances_to_security_groups(self, instances):
         for rule_args in self._config('per_instance_security_group_rules'):
