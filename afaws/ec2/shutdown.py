@@ -45,8 +45,9 @@ class Ec2Shutdown(object):
         #      when calling the StopInstances operation: Instance 'i-0a28ec81c26203dd4'
         #      cannot be stopped as it has never reached the 'running' state.
         await run_with_retries(run_in_loop_executor, [self._client.stop_instances],
-            {'InstanceIds': instance_ids}, FailedToShutDownError,
-            exceptions_whitelist=(ClientError,)) # should be tuple
+            {'InstanceIds': instance_ids}, True, FailedToShutDownError,
+            exceptions_whitelist=(ClientError,), # should be tuple
+            log_msg_prefix="Shutdown")
 
 
 class AutoShutdownScheduler(object):

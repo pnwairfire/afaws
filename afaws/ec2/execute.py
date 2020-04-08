@@ -44,8 +44,9 @@ class Ec2SshExecuter(object):
     # )
     async def wait_for_ssh_connectivity(self):
         logging.info("Waiting for ssh connectivity to %s", await self.ips())
-        await run_with_retries(self.execute, ['ls /'], {}, FailedToSshError,
-            exception_module_name_whitelist=['paramiko.ssh_exception'])
+        await run_with_retries(self.execute, ['ls /'], {}, True, FailedToSshError,
+            exception_module_name_whitelist=['paramiko.ssh_exception'],
+            log_msg_prefix="Waiting for ssh connectivity")
 
     async def execute(self, commands, ignore_errors=False):
         # accept single stirng value for 'commands'
