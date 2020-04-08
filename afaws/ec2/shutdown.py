@@ -38,8 +38,6 @@ class Ec2Shutdown(object):
         for i in instances:
             await SecurityGroupManager.remove_instance_from_rules(i)
 
-    STOP_RETRY_WAIT = 10
-    MAX_STOP_ATTEMPTS = (60 / STOP_RETRY_WAIT) * 5 # retry for up to 5 minutes
     async def _stop(self, instance_ids):
         logging.info("Stopping instances %s", instance_ids)
         # Run with retries in order to handle the following error:
