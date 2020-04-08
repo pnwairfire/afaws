@@ -17,7 +17,11 @@ __all__ = [
 
 
 class PostLaunchFailure(Exception):
-    pass
+
+    @property
+    def instances(self):
+        return self.args[1]
+
 
 ##
 ## Launchers
