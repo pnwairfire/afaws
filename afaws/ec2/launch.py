@@ -41,6 +41,7 @@ class Ec2Launcher(object):
             await self._associate_iam_instance_profile(instances)
             await self._post_launch_tasks(instances)
         except Exception as e:
+            logging.error("Failure in post-launch tasks: %s", e)
             raise PostLaunchFailure(e, instances)
 
         return instances
