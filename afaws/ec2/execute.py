@@ -8,6 +8,7 @@ import tornado.gen
 
 from .resources import Instance
 from .ssh import SshClient
+from ..asyncutils import run_with_retries
 
 __all__ = [
     'FailedToSshError',
@@ -43,27 +44,8 @@ class Ec2SshExecuter(object):
     # )
     async def wait_for_ssh_connectivity(self):
         logging.info("Waiting for ssh connectivity to %s", await self.ips())
-        attempts = 0
-        while True:
-            try:
-                await self.execute('ls /')
-                return
-
-            #except self.SSH_EXCEPTION_CLASSES as e:
-            except Exception as e:
-                # TODO: handle ConnectionResetError as well
-                if e.__class__.__module__ != 'paramiko.ssh_exception':
-                    raise
-
-                attempts += 1
-                if attempts >= self.MAX_SSH_ATTEMPTS:
-                    logging.error("%sth SSH failure. Aborting.", self.MAX_SSH_ATTEMPTS)
-                    raise FailedToSshError()
-
-                logging.info("SSH failure. waiting %s seconds before trying again",
-                    self.SSH_RETRY_WAIT)
-                await tornado.gen.sleep(self.SSH_RETRY_WAIT)
-
+        await run_with_retries(self.execute, ['ls /'], {}, FailedToSshError,
+            exception_module_name_whitelist=['paramiko.ssh_exception'])
 
     async def execute(self, commands, ignore_errors=False):
         # accept single stirng value for 'commands'
