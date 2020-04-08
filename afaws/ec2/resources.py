@@ -6,6 +6,7 @@ import boto3
 import tornado.gen
 from botocore.exceptions import ClientError
 
+from .exceptions import PostLaunchFailure
 from ..asyncutils import run_in_loop_executor, run_with_retries
 
 __all__ = [
@@ -172,6 +173,17 @@ class Instance(Ec2Resource):
         # These instances won't have names yet
         instances = await run_in_loop_executor(
             boto3.resource('ec2').create_instances, **kwargs)
+
+        try:
+            await cls._post_creation_tasks(instances, new_instance_names, tags)
+        except Exception as e:
+            logging.error("Failure in post-launch tasks: %s", e)
+            raise PostLaunchFailure(e, instances)
+
+        return instances
+
+    @classmethod
+    async def _post_creation_tasks(cls, instances, new_instance_names, tags):
         await asyncio.gather(*[
             cls._wait_to_name(instance, new_instance_names[i], tags)
                 for i, instance in enumerate(instances)
@@ -184,7 +196,6 @@ class Instance(Ec2Resource):
             cls.wait_for_ip_address(instance) for instance in instances
         ])
 
-        return instances
 
     @classmethod
     async def _wait_to_name(cls, instance, name, tags):
