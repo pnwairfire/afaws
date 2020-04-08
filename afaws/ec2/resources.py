@@ -6,7 +6,7 @@ import boto3
 import tornado.gen
 from botocore.exceptions import ClientError
 
-from ..asyncutils import run_in_loop_executor
+from ..asyncutils import run_in_loop_executor, run_with_retries
 
 __all__ = [
     'ResourceDoesNotExistError',
@@ -194,7 +194,11 @@ class Instance(Ec2Resource):
         instance_tags = [{'Key': 'Name','Value': name}]
         for k,v in tags.items():
             instance_tags.append({'Key': k,'Value': v})
-        instance.create_tags(DryRun=False,Tags=instance_tags)
+        # For some reason, we sometimes still get 'not exists' error,
+        # so, just wait and retry
+        await run_with_retries(instance.create_tags, [],
+            {'DryRun': False, 'Tags': instance_tags}, False,
+            RuntimeError, log_msg_prefix="Naming instance")
 
     @classmethod
     async def wait_until_running(cls, instance):
