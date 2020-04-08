@@ -5,28 +5,20 @@ import sys
 import boto3
 from botocore.exceptions import ClientError
 
+from .exceptions import PostLaunchFailure
 from .resources import SecurityGroup, Image, Instance
 from .network import SecurityGroupManager
 from ..asyncutils import run_in_loop_executor
 
 __all__ = [
     'Ec2Launcher',
-    'Ec2CloneLauncher',
-    'PostLaunchFailure'
+    'Ec2CloneLauncher'
 ]
-
-
-class PostLaunchFailure(Exception):
-
-    @property
-    def instances(self):
-        return self.args[1]
 
 
 ##
 ## Launchers
 ##
-
 
 class Ec2Launcher(object):
 
@@ -49,7 +41,7 @@ class Ec2Launcher(object):
             await self._associate_iam_instance_profile(instances)
             await self._post_launch_tasks(instances)
         except Exception as e:
-            raise PostLaunchFailure(str(e), instances)
+            raise PostLaunchFailure(e, instances)
 
         return instances
 
