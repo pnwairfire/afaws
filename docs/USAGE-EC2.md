@@ -44,10 +44,10 @@ to run scripts that execute commands via ssh
         afaws /afaws/bin/elb-manage --log-level INFO -p test -l
     docker run --rm -ti -v $PWD/:/afaws/ -v $HOME/.aws/:/root/.aws/ \
         afaws /afaws/bin/elb-manage --log-level INFO \
-        -p test -r test-1
+        -p test -a test-1
     docker run --rm -ti -v $PWD/:/afaws/ -v $HOME/.aws/:/root/.aws/ \
         afaws /afaws/bin/elb-manage --log-level INFO \
-        -p test -a test-1
+        -p test -r test-1
 
 ### ec2-execute
 
