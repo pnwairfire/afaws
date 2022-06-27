@@ -3,8 +3,7 @@ import logging
 import sys
 
 import boto3
-from botocore.exceptions import ClientError
-
+from botocore.exceptions import ClientError, WaiterError
 from .exceptions import PostLaunchFailure
 from .resources import SecurityGroup, Image, Instance
 from .network import SecurityGroupManager
@@ -249,9 +248,16 @@ class Ec2CloneLauncher(Ec2Launcher):
         )
 
         logging.info("Waiting for image %s (%s)", image.id, name_desc)
-        # TODO: Make sure this blocks until available
-        image.wait_until_exists('self',
-            Filters=[{'Name':'state','Values':['available']}])
+        while True:
+            try:
+                image.wait_until_exists('self',
+                    Filters=[{'Name':'state','Values':['available']}])
+                break
+            except WaiterError as e:
+                logging.info(
+                    "Boto gave up waiting for image %s (%s). Trying again",
+                    image.id, name_desc)
+
 
         logging.info("Image %s (%s) is available", image.id, name_desc)
         return image
