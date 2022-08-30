@@ -1,6 +1,8 @@
-FROM python:3.7.1-alpine3.8
+FROM python:3.9.13-alpine3.16
 
 RUN apk add --update bash less
+
+RUN pip install --upgrade pip
 
 # The following build tools are for paramiko and numbpy. numpy is requied for
 # afscripting > afdatetime > timezonefinder / pytz. Note that using
