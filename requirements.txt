@@ -1,7 +1,7 @@
 --extra-index https://pypi.airfire.org/simple/
 -f https://pypi.airfire.org/simple/
 afscripting==1.1.2
-fabric==2.5.0
+fabric==2.6.0
 boto3==1.9.70
 tornado==5.1.1
 pycrypto==2.6.1
