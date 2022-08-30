@@ -58,4 +58,4 @@ and the local code available and importable:
 
 ## Installing python package via pip
 
-    pip install --extra-index https://pypi.airfire.org/simple afaws==0.1.7
+    pip install --extra-index https://pypi.airfire.org/simple afaws==0.1.8
