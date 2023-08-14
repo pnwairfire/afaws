@@ -3,7 +3,7 @@
 afscripting==1.1.2
 fabric==2.6.0
 boto3==1.9.70
-tornado==5.1.1
+tornado==6.3.3
 pycrypto==2.6.1
 tabulate==0.8.3
 ipython
