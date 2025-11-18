@@ -1,0 +1,55 @@
+#!/bin/bash
+
+# TODO: rewrite as python script (like the other scripts in bin/)
+
+# Checks Ubuntu versions on all EC2 instances
+# Prerequisites:
+# - AWS CLI configured with proper credentials
+# - SSH key access to instances
+
+# Header
+printf "%-30s %-15s %-40s\n" "NAME" "PUBLIC_IP" "UBUNTU_VERSION"
+printf "%-30s %-15s %-40s\n" "----" "---------" "--------------"
+
+# Get all running EC2 instances and process them
+aws ec2 describe-instances \
+    --filters "Name=instance-state-name,Values=running" \
+    --query 'Reservations[*].Instances[*].[PublicIpAddress,PrivateIpAddress,Tags[?Key==`Name`].Value|[0]]' \
+    --output text | while IFS=$'\t' read -r public_ip private_ip name; do
+
+    # Set default name if empty
+    name=${name:-N/A}
+    public_ip=${public_ip:-N/A}
+
+    # Determine which IP to use for SSH
+    ip_to_use=""
+    if [ "$public_ip" != "None" ] && [ "$public_ip" != "N/A" ] && [ -n "$public_ip" ]; then
+        ip_to_use=$public_ip
+    elif [ "$private_ip" != "None" ] && [ -n "$private_ip" ]; then
+        ip_to_use=$private_ip
+    fi
+
+    if [ -z "$ip_to_use" ]; then
+        printf "%-30s %-15s %-40s\n" "$name" "$public_ip" "No IP available"
+        continue
+    fi
+
+    # Try to SSH and get Ubuntu version
+    # You may need to specify the path to your SSH key with -i flag
+    # Example: ssh -i ~/.ssh/your-key.pem ...
+
+    ubuntu_version=$(ssh -o StrictHostKeyChecking=no \
+                         -o ConnectTimeout=5 \
+                         -o BatchMode=yes \
+                         ubuntu@$ip_to_use \
+                         'lsb_release -ds 2>/dev/null || cat /etc/os-release 2>/dev/null | grep PRETTY_NAME | cut -d\" -f2' 2>/dev/null < /dev/null)
+
+    if [ $? -eq 0 ] && [ -n "$ubuntu_version" ]; then
+        ubuntu_version=$(echo "$ubuntu_version" | tr -d '\n' | tr -d '\r')
+    else
+        ubuntu_version="Unable to connect"
+    fi
+
+    printf "%-30s %-15s %-40s\n" "$name" "$public_ip" "$ubuntu_version"
+
+done

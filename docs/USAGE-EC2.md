@@ -73,6 +73,12 @@ to run scripts that execute commands via ssh
         --log-level INFO --initialize -k /root/.ssh/id_rsa.pem \
         --config-file ./config.json -i test-2
 
+### ec2-list-ubuntu-versions
+
+Thie script is currently written in bash and can be run outside of docker
+
+    ./bin/ec2-list-ubuntu-versions
+
 
 
 ### Full life-cycle (ec2-launch / ec2-manage / ec2-shutdown)
